@@ -17,7 +17,7 @@ public class frmMain extends javax.swing.JFrame {
     int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
     super_monitor monitor = new super_monitor();
     ArrayList<Cliente> list=new ArrayList<Cliente>();
-    
+    int inicio =0;
     /**
      * Creates new form frmMain
      */
@@ -26,6 +26,13 @@ public class frmMain extends javax.swing.JFrame {
         for (int i=0; i<3; i++) {
             for (int j=0; j<5; j++)
                 sala_cine[i][j] = "Vacío";
+        }
+        Cliente c;
+        char letra = 'A';
+        for (int i=0; i<15; i++){
+            c = new Cliente(letra);
+            list.add(c);
+            letra++;
         }
     }
     
@@ -177,13 +184,28 @@ public class frmMain extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
-        Cliente c;
-        char letra = 'A';
-        for (int i=0; i<15; i++){
-            c = new Cliente(letra);
-            c.start();
-            c.activo=true;
-            letra++;
+        if (inicio == 0) {
+            for (int i = 0; i < 15; i++) {
+                list.get(i).start();
+                list.get(i).activo = true;
+            }
+            inicio =1;
+        }
+        else
+        {
+            System.out.println("##########################################################");
+            list.removeAll(list);
+            filas_llenas=0;
+            asientos_ocupados = 0;
+            Cliente c;
+            char letra = 'A';
+            for (int i=0; i<15; i++){
+                c = new Cliente(letra);
+                list.add(c);
+                list.get(i).start();
+                list.get(i).activo = true;
+                letra++;
+            }
         }
     }//GEN-LAST:event_btnBuscarActionPerformed
 
