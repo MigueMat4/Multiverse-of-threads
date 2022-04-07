@@ -4,53 +4,92 @@
  */
 package main;
 
+import java.util.concurrent.Semaphore;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author migu_
  */
 public class frmMain extends javax.swing.JFrame {
-    
+
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
-    int filas_llenas; // contador de filas que se van llenando
+    int filas_llenas=0; // contador de filas que se van llenando
     int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
+    private static Semaphore mutex = new Semaphore(1, true);
 
     /**
      * Creates new form frmMain
      */
     public frmMain() {
         initComponents();
-        for (int i=0; i<3; i++) {
-            for (int j=0; j<5; j++)
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 5; j++) {
                 sala_cine[i][j] = "Vacío";
+            }
         }
     }
-    
+
     public class Cliente extends Thread {
+
         String nombre;
         String asiento_obtenido;
         float dinero;
 
         public Cliente(char letra) {
             nombre = "Cliente " + letra;
-            this.dinero = (float)(Math.random()* 100 + 50);
+            this.dinero = (float) (Math.random() * 100 + 50);
         }
-        
+
         @Override
         public void run() {
             System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
             // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
             // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
+            if (this.dinero>=83) {
+                this.dinero=this.dinero-83;
+                System.out.println(this.nombre +" compro: entrada, poporopos y dulces "+" DINERO: "+this.dinero);
+                
+            }
+            if (this.dinero>=78 &&this.dinero<83) {
+                this.dinero=this.dinero-78;
+                 System.out.println( this.nombre + " Compro:entrada y poporopos"+" DINERO: "+this.dinero);
+            }
+            if (this.dinero<=77 && this.dinero>53) {
+                this.dinero=this.dinero-53;
+                System.out.println( this.nombre + " Compro: entrada y dulces"+" DINERO: "+this.dinero);
+            }
+            if (this.dinero<53 && this.dinero>=48) {
+                this.dinero=this.dinero-48;
+                System.out.println( this.nombre + " Compro: entrada"+" DINERO: "+this.dinero);
+            }
+            //REGION CRÍTICA
+            try {
+                mutex.acquire();
+            } catch (InterruptedException ex) {
+                Logger.getLogger(frmMain.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            if (asientos_ocupados==5) {
+                filas_llenas++;
+                asientos_ocupados=0;
+            }
             sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
             String fila = switch (filas_llenas) {
-                case 0 -> "A";
-                case 1 -> "B";
-                default -> "C";
+                case 0 ->
+                    "A";
+                case 1 ->
+                    "B";
+                default ->
+                    "C";
             };
             this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
             asientos_ocupados++;
             // el cliente debe indicarle al portero que asiento tiene
             // también debe mostrar cuanto le quedo de dinero para el próximo estreno
-            System.out.println(this.nombre + " finalizado con status: 0");
+            //System.out.println(this.nombre + " finalizado con status: 0");
+            mutex.release();
+            //fin región critica
         }
     }
 
@@ -67,6 +106,8 @@ public class frmMain extends javax.swing.JFrame {
         btnBuscar = new javax.swing.JButton();
         btnVerAsientos = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -88,22 +129,30 @@ public class frmMain extends javax.swing.JFrame {
 
         jLabel2.setText("Función: Dr. Strange in the multiverse of madness");
 
+        jLabel4.setText("jLabel4");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jLabel2)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                            .addGap(169, 169, 169)
-                            .addComponent(jLabel1))
-                        .addGroup(layout.createSequentialGroup()
-                            .addGap(83, 83, 83)
-                            .addComponent(btnBuscar)
-                            .addGap(80, 80, 80)
-                            .addComponent(btnVerAsientos))))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addComponent(jLabel2)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(169, 169, 169)
+                                .addComponent(jLabel1))
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(83, 83, 83)
+                                .addComponent(btnBuscar)
+                                .addGap(80, 80, 80)
+                                .addComponent(btnVerAsientos))))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(116, 116, 116)
+                        .addComponent(jLabel3)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(113, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
@@ -113,7 +162,11 @@ public class frmMain extends javax.swing.JFrame {
                 .addComponent(jLabel1)
                 .addGap(18, 18, 18)
                 .addComponent(jLabel2)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 133, Short.MAX_VALUE)
+                .addGap(37, 37, 37)
+                .addComponent(jLabel3)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 41, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btnBuscar)
                     .addComponent(btnVerAsientos))
@@ -125,8 +178,10 @@ public class frmMain extends javax.swing.JFrame {
 
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
         Cliente c;
+        filas_llenas=0;
+        asientos_ocupados=0;
         char letra = 'A';
-        for (int i=0; i<3; i++){
+        for (int i = 0; i < 15; i++) {
             c = new Cliente(letra);
             c.start();
             letra++;
@@ -135,9 +190,9 @@ public class frmMain extends javax.swing.JFrame {
 
     private void btnVerAsientosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerAsientosActionPerformed
         System.out.println("Asientos de la sala:");
-        for (int i=0; i<3; i++) {
+        for (int i = 0; i < 3; i++) {
             String fila = "";
-            for (int j=0; j<5; j++) {
+            for (int j = 0; j < 5; j++) {
                 fila += "[" + sala_cine[i][j] + "] ";
             }
             System.out.println(fila);
@@ -184,5 +239,7 @@ public class frmMain extends javax.swing.JFrame {
     private javax.swing.JButton btnVerAsientos;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     // End of variables declaration//GEN-END:variables
 }
