@@ -4,6 +4,12 @@
  */
 package main;
 
+
+import java.text.DecimalFormat;
+import java.util.concurrent.Semaphore;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author migu_
@@ -13,6 +19,8 @@ public class frmMain extends javax.swing.JFrame {
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
     int filas_llenas; // contador de filas que se van llenando
     int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
+    private static int bufer[] = new int[15]; // Número de ranuras en el búfer
+    private static Semaphore mutex = new Semaphore(1, true); // Controla el acceso a la región crítica
 
     /**
      * Creates new form frmMain
@@ -29,29 +37,79 @@ public class frmMain extends javax.swing.JFrame {
         String nombre;
         String asiento_obtenido;
         float dinero;
+ 
+        
 
         public Cliente(char letra) {
             nombre = "Cliente " + letra;
-            this.dinero = (float)(Math.random()* 100 + 50);
+            this.dinero  = (float)(Math.random()* (100 - 50) + 50);
+            
         }
         
-        @Override
-        public void run() {
-            System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
+        public void compra(){
             // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
             // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
-            sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
-            String fila = switch (filas_llenas) {
+            DecimalFormat formato1 = new DecimalFormat("#.00");
+            System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + formato1.format(this.dinero));
+            System.out.println("Proceso " + this.nombre + "Boleto comprado con exito");
+            this.dinero = this.dinero - 48;
+            if(this.dinero >= 30){
+                this.dinero = this.dinero - 30;
+                System.out.println("Proceso " + this.nombre + " compro poporopos");
+            }
+            if(this.dinero >= 5){
+                this.dinero = this.dinero - 5;
+                System.out.println("Proceso " + this.nombre + " compro dulce");
+            }
+        }
+        
+        public int up(int semaforo){
+            semaforo++;
+            return semaforo;
+        }   
+    
+        public int down(int semaforo){
+            semaforo--;
+            return semaforo;
+        }
+        @Override
+        
+        public void run() {
+            //Pre-region critica la compra de las cosas
+            this.compra();
+            //Región critica
+            while(asientos_ocupados<16){
+                sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
+            if(4 < asientos_ocupados && asientos_ocupados < 9 ){
+                filas_llenas = 1;
+            }
+             if( asientos_ocupados > 9 ){
+                filas_llenas = 2;
+            }
+            
+            
+            String fila = switch (filas_llenas) 
+            {
                 case 0 -> "A";
                 case 1 -> "B";
                 default -> "C";
             };
+            
             this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
             asientos_ocupados++;
+            }
+            
             // el cliente debe indicarle al portero que asiento tiene
             // también debe mostrar cuanto le quedo de dinero para el próximo estreno
-            System.out.println(this.nombre + " finalizado con status: 0");
+            System.out.println(this.nombre + " finalizado con status: 0" + "Dinero para el proximo estreno: " + this.dinero);
         }
+        
+        
+     
+
+    }
+    
+
     }
 
     /**
@@ -126,7 +184,7 @@ public class frmMain extends javax.swing.JFrame {
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
         Cliente c;
         char letra = 'A';
-        for (int i=0; i<3; i++){
+        for (int i=0; i<7; i++){
             c = new Cliente(letra);
             c.start();
             letra++;
