@@ -4,6 +4,10 @@
  */
 package main;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+
 /**
  *
  * @author migu_
@@ -13,7 +17,7 @@ public class frmMain extends javax.swing.JFrame {
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
     int filas_llenas; // contador de filas que se van llenando
     int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
-
+    ArrayList<Cliente> listaClientes = new ArrayList();
     /**
      * Creates new form frmMain
      */
@@ -23,35 +27,93 @@ public class frmMain extends javax.swing.JFrame {
             for (int j=0; j<5; j++)
                 sala_cine[i][j] = "Vacío";
         }
+        Cliente c;
+        char letra = 'A';
+        for (int i=0; i<15; i++){
+            c = new Cliente(letra);
+            c.start();
+            listaClientes.add(c);
+            letra++;
+        }
     }
     
     public class Cliente extends Thread {
         String nombre;
         String asiento_obtenido;
         float dinero;
-
+        int poporopos=0;
+        int dulces=0;
+        private boolean run=false;
+        public void startRunning(){
+            run = true;
+        }
+        public void stopRunning(){
+            run = false;
+        }
+        
         public Cliente(char letra) {
             nombre = "Cliente " + letra;
-            this.dinero = (float)(Math.random()* 100 + 50);
+            this.dinero = (float)(Math.random() * (100 - 50)) + 50;
+            BigDecimal x = new BigDecimal(this.dinero).setScale(2,RoundingMode.HALF_UP);
+            this.dinero = x.floatValue();
         }
         
         @Override
         public void run() {
-            System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
-            // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
-            // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
-            sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
+            while (true) {
+                jLabel1.setText(jLabel1.getText());
+                while(run){
+                    this.dinero = (float)(Math.random() * (100 - 50)) + 50;
+                    BigDecimal x = new BigDecimal(this.dinero).setScale(2,RoundingMode.HALF_UP);
+                    this.dinero = x.floatValue();
+                    System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
+                    // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
+                    // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
+                    this.dinero-=48;
+                    while(this.dinero>=5){
+                        if(this.dinero >=30){
+                            this.poporopos++;
+                            this.dinero-=30;
+                        }
+                        if(this.dinero>=5){
+                            this.dulces++;
+                            this.dinero-=5;
+                        }
+                    }
+                    this.asiento_obtenido = tomarAsiento(this.nombre);
+                    mostrarInfo();
+                    stopRunning();
+                }
+            }
+        }
+        public void mostrarInfo(){
+            BigDecimal x = new BigDecimal(this.dinero).setScale(2,RoundingMode.HALF_UP);
+            this.dinero = x.floatValue();
+            System.out.println("---------------------------------------------------");
+            System.out.println("Soy el "+this.nombre+" y mi asiento es: " + asiento_obtenido 
+                    + "\nCompre: "+this.poporopos+" poporopos y " + this.dulces + " dulces\n"
+                            + "Me quedan: Q"+this.dinero);
+            System.out.println("---------------------------------------------------");
+        }
+    }
+    /*Monitor*/
+    public synchronized String tomarAsiento(String nombre){
+        sala_cine[filas_llenas][asientos_ocupados] = nombre;
             String fila = switch (filas_llenas) {
                 case 0 -> "A";
                 case 1 -> "B";
                 default -> "C";
             };
-            this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
+            String asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
             asientos_ocupados++;
+            if(asientos_ocupados==5){
+                filas_llenas++;
+                asientos_ocupados=0;
+            }
             // el cliente debe indicarle al portero que asiento tiene
             // también debe mostrar cuanto le quedo de dinero para el próximo estreno
-            System.out.println(this.nombre + " finalizado con status: 0");
-        }
+            System.out.println(nombre + " finalizado con status: 0");
+            return asiento_obtenido;
     }
 
     /**
@@ -124,12 +186,10 @@ public class frmMain extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
-        Cliente c;
-        char letra = 'A';
-        for (int i=0; i<3; i++){
-            c = new Cliente(letra);
-            c.start();
-            letra++;
+        for (int i = 0; i < listaClientes.size(); i++) {
+            asientos_ocupados=0;
+            filas_llenas=0;
+            listaClientes.get(i).startRunning();
         }
     }//GEN-LAST:event_btnBuscarActionPerformed
 
