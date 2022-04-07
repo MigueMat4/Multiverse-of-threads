@@ -4,52 +4,104 @@
  */
 package main;
 
+import java.util.concurrent.Semaphore;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
- * @author migu_
+ * @author Diego Galan
  */
 public class frmMain extends javax.swing.JFrame {
-    
+
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
     int filas_llenas; // contador de filas que se van llenando
     int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
+    // semaforo para controlar la region Critica
+    private static Semaphore mutex = new Semaphore(1, true);
 
     /**
      * Creates new form frmMain
      */
+
     public frmMain() {
         initComponents();
-        for (int i=0; i<3; i++) {
-            for (int j=0; j<5; j++)
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 5; j++) {
                 sala_cine[i][j] = "Vacío";
+            }
         }
     }
     
+    public void ReninicarSala(){
+         for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 5; j++) {
+                sala_cine[i][j] = "Vacío";
+            }
+        }
+        asientos_ocupados = 0;
+        filas_llenas=0; 
+    }
+
     public class Cliente extends Thread {
+
         String nombre;
         String asiento_obtenido;
         float dinero;
+        String compra;
 
         public Cliente(char letra) {
             nombre = "Cliente " + letra;
-            this.dinero = (float)(Math.random()* 100 + 50);
+            //garantizar un numero alateorio entre 100 y 50 
+            this.dinero = (float) (Math.random() * (100 - 50 + 1) + 50);
         }
-        
+
         @Override
         public void run() {
-            System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
+            // Pre RegionCritica
+            System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + String.format("%.02f", this.dinero));
             // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
             // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
+            //comprar un asiento y golocinas 
+            this.dinero = this.dinero - 48;
+            compra = "Proceso " + this.nombre + " compre un Boleto";
+            if (this.dinero >= 30) {
+                this.dinero = this.dinero - 30;
+                compra = compra + " y compre poporopos";
+            }
+            if (this.dinero >= 5) {
+                this.dinero = this.dinero - 5;
+                compra = compra + " tambien compre dulces";
+            }
+
+            try {
+                //Regrion Critica
+                mutex.acquire();
+            } catch (InterruptedException ex) {
+                Logger.getLogger(frmMain.class.getName()).log(Level.SEVERE, null, ex);
+            }
             sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
             String fila = switch (filas_llenas) {
-                case 0 -> "A";
-                case 1 -> "B";
-                default -> "C";
+                case 0 ->
+                    "A";
+                case 1 ->
+                    "B";
+                default ->
+                    "C";
             };
             this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
             asientos_ocupados++;
+            // si se llena la primera fila se pasa a la siguente
+            if (asientos_ocupados == 5) {
+                filas_llenas++;
+                asientos_ocupados = 0;
+            }
             // el cliente debe indicarle al portero que asiento tiene
             // también debe mostrar cuanto le quedo de dinero para el próximo estreno
+             mutex.release(); // Libera región crítica
+            //PostRegionCritica 
+            System.out.println("Proceso " + this.nombre + " tengo el asiento: " + this.asiento_obtenido);
+            System.out.println(compra + ", Me sobraron: Q" + String.format("%.02f", this.dinero));
             System.out.println(this.nombre + " finalizado con status: 0");
         }
     }
@@ -124,9 +176,10 @@ public class frmMain extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
+       ReninicarSala();
         Cliente c;
         char letra = 'A';
-        for (int i=0; i<3; i++){
+        for (int i = 0; i < 15; i++) {
             c = new Cliente(letra);
             c.start();
             letra++;
@@ -135,9 +188,9 @@ public class frmMain extends javax.swing.JFrame {
 
     private void btnVerAsientosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerAsientosActionPerformed
         System.out.println("Asientos de la sala:");
-        for (int i=0; i<3; i++) {
+        for (int i = 0; i < 3; i++) {
             String fila = "";
-            for (int j=0; j<5; j++) {
+            for (int j = 0; j < 5; j++) {
                 fila += "[" + sala_cine[i][j] + "] ";
             }
             System.out.println(fila);
