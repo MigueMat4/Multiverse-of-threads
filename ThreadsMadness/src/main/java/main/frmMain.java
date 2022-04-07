@@ -13,6 +13,8 @@ public class frmMain extends javax.swing.JFrame {
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
     int filas_llenas; // contador de filas que se van llenando
     int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
+    Cliente hilo1;
+    Monitor monitor;
 
     /**
      * Creates new form frmMain
@@ -20,34 +22,85 @@ public class frmMain extends javax.swing.JFrame {
     public frmMain() {
         initComponents();
         for (int i=0; i<3; i++) {
-            for (int j=0; j<5; j++)
-                sala_cine[i][j] = "Vacío";
+            for (int j=0; j<5; j++){
+                sala_cine[i][j] = "Vacio";
+                this.hilo1 = new Cliente(sala_cine[i][j]);
+            }
         }
+        this.hilo1.start();
     }
     
-    public class Cliente extends Thread {
-        String nombre;
-        String asiento_obtenido;
-        float dinero;
-
-        public Cliente(char letra) {
-            nombre = "Cliente " + letra;
-            this.dinero = (float)(Math.random()* 100 + 50);
+    class Monitor{
+        float[] rCritica = new float[15];
+        int posicion;
+        
+        public Monitor(){
+            rCritica[0] = 0;
+            rCritica[1] = 0;
+            rCritica[2] = 0;
+            rCritica[3] = 0;
+            rCritica[4] = 0;
+            rCritica[5] = 0;
+            rCritica[6] = 0;
+            rCritica[7] = 0;
+            rCritica[8] = 0;
+            rCritica[9] = 0;
+            rCritica[10] = 0;
+            rCritica[11] = 0;
+            rCritica[12] = 0;
+            rCritica[13] = 0;
+            rCritica[14] = 0;
         }
         
-        @Override
-        public void run() {
-            System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
-            // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
-            // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
-            sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
+        public synchronized void MonitorProcesador(float valor, String cliente){
+        //Region critica
+        String nombre;
+        nombre = "Cliente " + cliente;
+        rCritica[posicion] = valor;
+        String asiento_obtenido;
+        String contenidoRC = "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[0] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[1] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[2] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[3] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[4] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[5] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[6] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[7] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[8] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[9] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[10] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[11] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[12] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[13] + "\n";
+        contenidoRC += "Proceso " + nombre + " iniciado. Tengo Q " + rCritica[14] + "\n";
+        System.out.println(contenidoRC);
+        sala_cine[filas_llenas][asientos_ocupados] = nombre;
             String fila = switch (filas_llenas) {
                 case 0 -> "A";
                 case 1 -> "B";
                 default -> "C";
             };
-            this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
+            asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
             asientos_ocupados++;
+        posicion++;
+        }
+    }
+    
+    public class Cliente extends Thread {
+        String nombre;
+        float dinero;
+
+        public Cliente(String letra) {
+            nombre = letra;
+            this.dinero = 0;
+        }
+        
+        @Override
+        public void run() {
+            // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
+            // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
+            this.dinero = (float)(Math.random()* 51 + 50);
+            monitor.MonitorProcesador(dinero, nombre);
             // el cliente debe indicarle al portero que asiento tiene
             // también debe mostrar cuanto le quedo de dinero para el próximo estreno
             System.out.println(this.nombre + " finalizado con status: 0");
@@ -127,7 +180,7 @@ public class frmMain extends javax.swing.JFrame {
         Cliente c;
         char letra = 'A';
         for (int i=0; i<3; i++){
-            c = new Cliente(letra);
+            c = new Cliente(String.valueOf(letra));
             c.start();
             letra++;
         }
@@ -172,10 +225,8 @@ public class frmMain extends javax.swing.JFrame {
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new frmMain().setVisible(true);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            new frmMain().setVisible(true);
         });
     }
 
