@@ -4,16 +4,24 @@
  */
 package main;
 
+import java.util.concurrent.Semaphore;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author migu_
  */
 public class frmMain extends javax.swing.JFrame {
-    
+    Cliente hilo1;
+    Cliente hilo2;
+    Cliente hilo3;
+    //Monitor mi_monitor;
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
+    //region critica
     int filas_llenas; // contador de filas que se van llenando
     int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
-
+    private static Semaphore mutex = new Semaphore(1, true); 
     /**
      * Creates new form frmMain
      */
@@ -29,6 +37,12 @@ public class frmMain extends javax.swing.JFrame {
         String nombre;
         String asiento_obtenido;
         float dinero;
+        float entrada = 48;
+        float poporopos = 30;        
+        float dulces = 5;
+        float saldo = 0;
+        float saldo2 = 0;
+        float dinero2 = 0;
 
         public Cliente(char letra) {
             nombre = "Cliente " + letra;
@@ -37,9 +51,17 @@ public class frmMain extends javax.swing.JFrame {
         
         @Override
         public void run() {
-            System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
+            dinero2 = (float) (Math.round(dinero*100.0)/100.0);
+            System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero2);
             // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
+            saldo = dinero - entrada - poporopos - dulces;
+            saldo2 = (float) (Math.round(saldo*100.0)/100.0);
             // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
+            try {
+                mutex.acquire();
+            } catch (InterruptedException ex) {
+                Logger.getLogger(frmMain.class.getName()).log(Level.SEVERE, null, ex);
+            }
             sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
             String fila = switch (filas_llenas) {
                 case 0 -> "A";
@@ -48,9 +70,13 @@ public class frmMain extends javax.swing.JFrame {
             };
             this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
             asientos_ocupados++;
+            mutex.release();
             // el cliente debe indicarle al portero que asiento tiene
+            System.out.println("Mi asiento es: " + this.asiento_obtenido);
             // también debe mostrar cuanto le quedo de dinero para el próximo estreno
+            System.out.println("Mi saldo es: " + this.saldo2);
             System.out.println(this.nombre + " finalizado con status: 0");
+            
         }
     }
 
@@ -126,7 +152,7 @@ public class frmMain extends javax.swing.JFrame {
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
         Cliente c;
         char letra = 'A';
-        for (int i=0; i<3; i++){
+        for (int i=0; i<15; i++){
             c = new Cliente(letra);
             c.start();
             letra++;
