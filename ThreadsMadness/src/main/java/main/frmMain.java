@@ -12,8 +12,9 @@ public class frmMain extends javax.swing.JFrame {
     
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
     int filas_llenas; // contador de filas que se van llenando
-    int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
-
+    int asientos_ocupados = -1; // contador de posiciones para los asientos de una fila
+    Monitor vigilante;
+    
     /**
      * Creates new form frmMain
      */
@@ -32,7 +33,7 @@ public class frmMain extends javax.swing.JFrame {
 
         public Cliente(char letra) {
             nombre = "Cliente " + letra;
-            this.dinero = (float)(Math.random()* 100 + 50);
+            this.dinero = (float) (Math.round((((Math.random()* 50)+50))*100))/100;
         }
         
         @Override
@@ -40,20 +41,67 @@ public class frmMain extends javax.swing.JFrame {
             System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
             // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
             // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
-            sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
+            String compra="";
+            this.dinero =this.dinero- 48;
+            if(this.dinero>30)
+            {
+                compra = ", palomitas,";
+                this.dinero = this.dinero - 30;
+            }
+            if(this.dinero>5)
+            {
+               // int dulces = (int)this.dinero %5;
+                compra =  ", dulce";
+                this.dinero = this.dinero - 5;
+            }
+            System.out.println("Ha decidido comprar boleto" + compra);
+            
+            //Region Critica
+            vigilante.Ingresar(this.nombre);
             String fila = switch (filas_llenas) {
                 case 0 -> "A";
                 case 1 -> "B";
                 default -> "C";
             };
-            this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
             asientos_ocupados++;
+            if(asientos_ocupados==5)
+            {
+             filas_llenas++;
+            }
+            asientos_ocupados=asientos_ocupados%5 ;
+            this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados+1);
+            sala_cine[filas_llenas][asientos_ocupados] = vigilante.Retirar();
+            //Fin Region Critica
+            
+            
             // el cliente debe indicarle al portero que asiento tiene
             // también debe mostrar cuanto le quedo de dinero para el próximo estreno
+            String result= this.nombre + " Asiento: " + this.asiento_obtenido +  " Dinero Restante:" + (Math.round(this.dinero*100))/100;
+            System.out.println(result);
             System.out.println(this.nombre + " finalizado con status: 0");
         }
     }
 
+   class Monitor
+    {
+        private String fila_caja[] = new String[15];
+        private int inf=0, sup=0; 
+          
+        public synchronized void Ingresar(String cliente){
+            fila_caja[sup]=cliente; // inserta un elemento en el búfer
+            sup++; // direccion en la que se colocara el siguiente elemento
+        }
+        
+        public synchronized String Retirar(){
+            String cliente="";
+             cliente=fila_caja[inf]; // obtiene un elemento del búfer
+             inf ++; // espacio del siguiente elemento que se obtendra
+             return cliente;
+        }
+
+}
+    
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -124,9 +172,18 @@ public class frmMain extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
+     
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 5; j++) {
+                sala_cine[i][j] = "Vacío";
+            }
+        }
+        asientos_ocupados = -1;
+        filas_llenas=0;
+        vigilante = new Monitor();
         Cliente c;
         char letra = 'A';
-        for (int i=0; i<3; i++){
+        for (int i=0; i<15; i++){
             c = new Cliente(letra);
             c.start();
             letra++;
