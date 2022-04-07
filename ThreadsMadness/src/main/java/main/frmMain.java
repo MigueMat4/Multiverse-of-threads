@@ -4,6 +4,8 @@
  */
 package main;
 
+import java.util.ArrayList;
+
 /**
  *
  * @author migu_
@@ -13,7 +15,9 @@ public class frmMain extends javax.swing.JFrame {
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
     int filas_llenas; // contador de filas que se van llenando
     int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
-
+    super_monitor monitor = new super_monitor();
+    ArrayList<Cliente> list=new ArrayList<Cliente>();
+    int inicio =0;
     /**
      * Creates new form frmMain
      */
@@ -23,34 +27,90 @@ public class frmMain extends javax.swing.JFrame {
             for (int j=0; j<5; j++)
                 sala_cine[i][j] = "Vacío";
         }
+        Cliente c;
+        char letra = 'A';
+        for (int i=0; i<15; i++){
+            c = new Cliente(letra);
+            list.add(c);
+            letra++;
+        }
     }
     
     public class Cliente extends Thread {
         String nombre;
         String asiento_obtenido;
-        float dinero;
-
+        double dinero;
+        boolean entrada=false, poporopos=false, dulces=false;
+        boolean activo = false;
         public Cliente(char letra) {
             nombre = "Cliente " + letra;
-            this.dinero = (float)(Math.random()* 100 + 50);
+            this.dinero = (float)(Math.random()* (100-50) + 50);
+            dinero = Math.round(dinero*100.0)/100.0;
         }
         
         @Override
         public void run() {
             System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
-            // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
-            // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
-            sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
-            String fila = switch (filas_llenas) {
+            while(activo==true){
+                    if((dinero-48.00)>=0.00){ // me aseguro que tenga el dinero para comprar la entrada
+                    dinero = dinero-48.00;
+                    entrada=true;
+                    if((dinero-30.00)>=0.00){
+                        dinero = dinero-30.00;
+                        poporopos = true;
+                    }
+                    if((dinero-5.00)>=0.00){
+                        dinero = dinero-5.00;
+                        dulces = true;
+                    }
+                    dinero = Math.round(dinero*100.0)/100.0;
+                    this.asiento_obtenido = monitor.insertar(this.nombre);
+                    // el cliente debe indicarle al portero que asiento tiene
+                    // también debe mostrar cuanto le quedo de dinero para el próximo estreno
+                    if(poporopos==true) System.out.println("Compró poporopos");
+                    if(dulces==true) System.out.println("Compró dulces");
+                    System.out.println("Vuelto Cliente "+nombre+": " + this.dinero);
+                    System.out.println("Asiento: " + this.asiento_obtenido);
+                    System.out.println(this.nombre + " finalizado con status: 0");
+                }
+                // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
+            }
+            
+        }
+    }
+    class super_monitor { 
+       
+        // monitor como solución
+        public super_monitor() {
+        }
+        /**
+         * synchronized = Una vez un hilo ha empezado a ejecutar ese método, no
+         * se permitirá que ningún otro hilo empiece a ejecutar ningún otro
+         * método synchronized de ese objeto
+         */
+        public synchronized String insertar(String nombre) {
+            if (filas_llenas == 3 && asientos_ocupados ==5 ) {
+                ir_a_estado_inactivo(); // si el búfer está lleno, pasa al estado inactivo
+            }
+             sala_cine[filas_llenas][asientos_ocupados]= nombre;
+             String fila = switch (filas_llenas) {
                 case 0 -> "A";
                 case 1 -> "B";
                 default -> "C";
             };
-            this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
+            String asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
             asientos_ocupados++;
-            // el cliente debe indicarle al portero que asiento tiene
-            // también debe mostrar cuanto le quedo de dinero para el próximo estreno
-            System.out.println(this.nombre + " finalizado con status: 0");
+            if(asientos_ocupados==5  && filas_llenas != 3){
+                asientos_ocupados =0;
+                filas_llenas++;
+            }
+            return asiento_obtenido;
+        }
+        private void ir_a_estado_inactivo() {
+            try {
+                wait(); // Duerme al proceso en turno
+            } catch (InterruptedException exc) {
+            };
         }
     }
 
@@ -124,12 +184,28 @@ public class frmMain extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
-        Cliente c;
-        char letra = 'A';
-        for (int i=0; i<3; i++){
-            c = new Cliente(letra);
-            c.start();
-            letra++;
+        if (inicio == 0) {
+            for (int i = 0; i < 15; i++) {
+                list.get(i).start();
+                list.get(i).activo = true;
+            }
+            inicio =1;
+        }
+        else
+        {
+            System.out.println("##########################################################");
+            list.removeAll(list);
+            filas_llenas=0;
+            asientos_ocupados = 0;
+            Cliente c;
+            char letra = 'A';
+            for (int i=0; i<15; i++){
+                c = new Cliente(letra);
+                list.add(c);
+                list.get(i).start();
+                list.get(i).activo = true;
+                letra++;
+            }
         }
     }//GEN-LAST:event_btnBuscarActionPerformed
 
