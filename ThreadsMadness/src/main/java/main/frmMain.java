@@ -4,53 +4,104 @@
  */
 package main;
 
+import java.util.ArrayList;
+
 /**
  *
  * @author migu_
  */
 public class frmMain extends javax.swing.JFrame {
-    
+
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
-    int filas_llenas; // contador de filas que se van llenando
+    int filas_llenas = 0; // contador de filas que se van llenando
     int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
+    Monitor monitor = new Monitor();
 
     /**
      * Creates new form frmMain
      */
     public frmMain() {
         initComponents();
-        for (int i=0; i<3; i++) {
-            for (int j=0; j<5; j++)
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 5; j++) {
                 sala_cine[i][j] = "Vacío";
+            }
         }
     }
-    
+
+    public class Monitor {
+
+        public synchronized String asignarAsientos(String nombre) {
+            if (asientos_ocupados == 5) {
+                asientos_ocupados = 0;
+                filas_llenas++;
+            }
+            sala_cine[filas_llenas][asientos_ocupados] = nombre;
+            asientos_ocupados++;
+            System.out.println("## Región crítica: " + nombre + " tomó el asiento (" + getFila(filas_llenas) + asientos_ocupados + ") \n");
+            return nombre + " Muestra el asiento al portero: Fila: " + getFila(filas_llenas) + " - Asiento: " + asientos_ocupados + " (" + getFila(filas_llenas) + asientos_ocupados + ")";
+        }
+    }
+
     public class Cliente extends Thread {
+
         String nombre;
         String asiento_obtenido;
+        ArrayList inventario = new ArrayList();
         float dinero;
 
         public Cliente(char letra) {
             nombre = "Cliente " + letra;
-            this.dinero = (float)(Math.random()* 100 + 50);
+            // Entre 50 y Q100
+            this.dinero = (float) Math.floor((Math.random() * (50) + 50) * 100) / 100;
         }
-        
+
         @Override
         public void run() {
             System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
+            Float dineroInicial = this.dinero;
             // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
             // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
-            sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
-            String fila = switch (filas_llenas) {
-                case 0 -> "A";
-                case 1 -> "B";
-                default -> "C";
-            };
-            this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
-            asientos_ocupados++;
+
+            /////////////  COMPRA BOLETO Y COMIDA (El proceso se maneja con los centavos porque sino a veces pasa que se pierde un centavo
+            this.dinero = ((this.dinero * 100) - 4800) / 100;
+            inventario.add("Boleto");
+            if (this.dinero > 30) {
+                this.dinero = ((this.dinero * 100) - 3000) / 100;
+                inventario.add("Poporopos");
+                if (this.dinero > 5) {
+                    this.dinero = ((this.dinero * 100) - 500) / 100;
+                    inventario.add("Dulces");
+                }
+            } else if (this.dinero > 5) {
+                this.dinero = ((this.dinero * 100) - 500) / 100;
+                inventario.add("Dulces");
+            }
+            String inventarioObtenido = "Compras realizadas con Q " + dineroInicial + " por " + this.nombre + ": ";
+            for (int i = 0; i < inventario.size(); i++) {
+                if (i + 1 == inventario.size()) {
+                    inventarioObtenido += inventario.get(i);
+                } else {
+                    inventarioObtenido += inventario.get(i) + ", ";
+                }
+            }
+            ////////////   BUSCA EL ASIENTO (Región crítica manejada por el monitor)
+            this.asiento_obtenido = monitor.asignarAsientos(this.nombre);
+
             // el cliente debe indicarle al portero que asiento tiene
             // también debe mostrar cuanto le quedo de dinero para el próximo estreno
-            System.out.println(this.nombre + " finalizado con status: 0");
+            System.out.println("## Estado final de " + this.nombre + " ## \n" + this.asiento_obtenido + "\n" + inventarioObtenido + " (restante: Q " + Math.floor(this.dinero * 100) / 100 + ") \n" + this.nombre + " finalizado con status: 0\n");
+        }
+    }
+
+    public String getFila(Integer fila) {
+        switch (fila) {
+            case 0:
+                return "A";
+            case 1:
+                return "B";
+            default:
+                return "C";
         }
     }
 
@@ -123,10 +174,22 @@ public class frmMain extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    public void limpiar() {
+        filas_llenas = 0;
+        asientos_ocupados = 0;
+
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 5; j++) {
+                sala_cine[i][j] = "Vacio";
+            }
+        }
+    }
+
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
+        limpiar();
         Cliente c;
         char letra = 'A';
-        for (int i=0; i<3; i++){
+        for (int i = 0; i < 15; i++) {
             c = new Cliente(letra);
             c.start();
             letra++;
@@ -134,13 +197,14 @@ public class frmMain extends javax.swing.JFrame {
     }//GEN-LAST:event_btnBuscarActionPerformed
 
     private void btnVerAsientosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerAsientosActionPerformed
+
         System.out.println("Asientos de la sala:");
-        for (int i=0; i<3; i++) {
+        for (int i = 0; i < 3; i++) {
             String fila = "";
-            for (int j=0; j<5; j++) {
+            for (int j = 0; j < 5; j++) {
                 fila += "[" + sala_cine[i][j] + "] ";
             }
-            System.out.println(fila);
+            System.out.println("Fila " + getFila(i) + " --- " + fila);
         }
     }//GEN-LAST:event_btnVerAsientosActionPerformed
 
