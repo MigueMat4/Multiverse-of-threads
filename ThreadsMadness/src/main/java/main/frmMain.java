@@ -4,17 +4,116 @@
  */
 package main;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+
 /**
  *
  * @author migu_
  */
 public class frmMain extends javax.swing.JFrame {
-
+    
+    String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
+    int filas_llenas; // contador de filas que se van llenando
+    int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
+    ArrayList<Cliente> listaClientes = new ArrayList();
     /**
      * Creates new form frmMain
      */
     public frmMain() {
         initComponents();
+        for (int i=0; i<3; i++) {
+            for (int j=0; j<5; j++)
+                sala_cine[i][j] = "Vacío";
+        }
+        Cliente c;
+        char letra = 'A';
+        for (int i=0; i<15; i++){
+            c = new Cliente(letra);
+            c.start();
+            listaClientes.add(c);
+            letra++;
+        }
+    }
+    
+    public class Cliente extends Thread {
+        String nombre;
+        String asiento_obtenido;
+        float dinero;
+        int poporopos=0;
+        int dulces=0;
+        private boolean run=false;
+        public void startRunning(){
+            run = true;
+        }
+        public void stopRunning(){
+            run = false;
+        }
+        
+        public Cliente(char letra) {
+            nombre = "Cliente " + letra;
+            this.dinero = (float)(Math.random() * (100 - 50)) + 50;
+            BigDecimal x = new BigDecimal(this.dinero).setScale(2,RoundingMode.HALF_UP);
+            this.dinero = x.floatValue();
+        }
+        
+        @Override
+        public void run() {
+            while (true) {
+                jLabel1.setText(jLabel1.getText());
+                while(run){
+                    this.dinero = (float)(Math.random() * (100 - 50)) + 50;
+                    BigDecimal x = new BigDecimal(this.dinero).setScale(2,RoundingMode.HALF_UP);
+                    this.dinero = x.floatValue();
+                    System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
+                    // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
+                    // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
+                    this.dinero-=48;
+                    while(this.dinero>=5){
+                        if(this.dinero >=30){
+                            this.poporopos++;
+                            this.dinero-=30;
+                        }
+                        if(this.dinero>=5){
+                            this.dulces++;
+                            this.dinero-=5;
+                        }
+                    }
+                    this.asiento_obtenido = tomarAsiento(this.nombre);
+                    mostrarInfo();
+                    stopRunning();
+                }
+            }
+        }
+        public void mostrarInfo(){
+            BigDecimal x = new BigDecimal(this.dinero).setScale(2,RoundingMode.HALF_UP);
+            this.dinero = x.floatValue();
+            System.out.println("---------------------------------------------------");
+            System.out.println("Soy el "+this.nombre+" y mi asiento es: " + asiento_obtenido 
+                    + "\nCompre: "+this.poporopos+" poporopos y " + this.dulces + " dulces\n"
+                            + "Me quedan: Q"+this.dinero);
+            System.out.println("---------------------------------------------------");
+        }
+    }
+    /*Monitor*/
+    public synchronized String tomarAsiento(String nombre){
+        sala_cine[filas_llenas][asientos_ocupados] = nombre;
+            String fila = switch (filas_llenas) {
+                case 0 -> "A";
+                case 1 -> "B";
+                default -> "C";
+            };
+            String asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
+            asientos_ocupados++;
+            if(asientos_ocupados==5){
+                filas_llenas++;
+                asientos_ocupados=0;
+            }
+            // el cliente debe indicarle al portero que asiento tiene
+            // también debe mostrar cuanto le quedo de dinero para el próximo estreno
+            System.out.println(nombre + " finalizado con status: 0");
+            return asiento_obtenido;
     }
 
     /**
@@ -26,21 +125,84 @@ public class frmMain extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jLabel1 = new javax.swing.JLabel();
+        btnBuscar = new javax.swing.JButton();
+        btnVerAsientos = new javax.swing.JButton();
+        jLabel2 = new javax.swing.JLabel();
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+
+        jLabel1.setText("2a Evaluación Parcial");
+
+        btnBuscar.setText("Buscar boletos");
+        btnBuscar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnBuscarActionPerformed(evt);
+            }
+        });
+
+        btnVerAsientos.setText("Ver asientos");
+        btnVerAsientos.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnVerAsientosActionPerformed(evt);
+            }
+        });
+
+        jLabel2.setText("Función: Dr. Strange in the multiverse of madness");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel2)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                            .addGap(169, 169, 169)
+                            .addComponent(jLabel1))
+                        .addGroup(layout.createSequentialGroup()
+                            .addGap(83, 83, 83)
+                            .addComponent(btnBuscar)
+                            .addGap(80, 80, 80)
+                            .addComponent(btnVerAsientos))))
+                .addContainerGap(113, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(39, 39, 39)
+                .addComponent(jLabel1)
+                .addGap(18, 18, 18)
+                .addComponent(jLabel2)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 133, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btnBuscar)
+                    .addComponent(btnVerAsientos))
+                .addGap(38, 38, 38))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
+        for (int i = 0; i < listaClientes.size(); i++) {
+            asientos_ocupados=0;
+            filas_llenas=0;
+            listaClientes.get(i).startRunning();
+        }
+    }//GEN-LAST:event_btnBuscarActionPerformed
+
+    private void btnVerAsientosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerAsientosActionPerformed
+        System.out.println("Asientos de la sala:");
+        for (int i=0; i<3; i++) {
+            String fila = "";
+            for (int j=0; j<5; j++) {
+                fila += "[" + sala_cine[i][j] + "] ";
+            }
+            System.out.println(fila);
+        }
+    }//GEN-LAST:event_btnVerAsientosActionPerformed
 
     /**
      * @param args the command line arguments
@@ -78,5 +240,9 @@ public class frmMain extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnBuscar;
+    private javax.swing.JButton btnVerAsientos;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
     // End of variables declaration//GEN-END:variables
 }
