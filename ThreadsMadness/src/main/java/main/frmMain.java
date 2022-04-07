@@ -4,11 +4,16 @@
  */
 package main;
 
+
+import java.util.Random;
 /**
  *
  * @author migu_
  */
 public class frmMain extends javax.swing.JFrame {
+    
+    static final int N = 15; // constante que proporciona el tamaño del búfer
+    static super_monitor monitor = new super_monitor(); // crea instancia de un nuevo monitor
     
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
     int filas_llenas; // contador de filas que se van llenando
@@ -25,19 +30,49 @@ public class frmMain extends javax.swing.JFrame {
         }
     }
     
+    
     public class Cliente extends Thread {
         String nombre;
         String asiento_obtenido;
         float dinero;
 
         public Cliente(char letra) {
-            nombre = "Cliente " + letra;
-            this.dinero = (float)(Math.random()* 100 + 50);
+                 nombre = "Cliente " + letra;
+                
+                int min = 50;
+		int max = 100;
+		Random random = new Random();
+                
+		int value = random.nextInt(max + min) + min;
+                this.dinero = (float)(value);
+                
+               
         }
         
         @Override
         public void run() {
             System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
+             if(dinero > 85 ){
+                    System.out.println("Este cliente va a comprar Boleto palomitas y Dulces");
+                }
+                
+                
+                if(dinero > 78){
+                    if(dinero < 85 ){
+                    System.out.println("Este cliente va a comprar Boleto y palomitas ");
+                    }
+                }
+                if(dinero < 78){
+                    if(dinero > 55 ){
+                    System.out.println("Este cliente va a comprar un boleto y dulces");
+                    }
+                }
+                
+                 if(dinero < 55){
+                    System.out.println("Este cliente va a comprar un boleto");
+                }
+                 
+            monitor.comprar(this.nombre);
             // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
             // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
             sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
@@ -51,6 +86,33 @@ public class frmMain extends javax.swing.JFrame {
             // el cliente debe indicarle al portero que asiento tiene
             // también debe mostrar cuanto le quedo de dinero para el próximo estreno
             System.out.println(this.nombre + " finalizado con status: 0");
+        }
+    }
+    
+     static class super_monitor{ 
+        private String bufer[] = new String[N];
+        private int cuenta=0, inf=0, sup=0; 
+        
+        
+        public synchronized void comprar(String val){
+            if (cuenta==N)
+                ir_a_estado_inactivo(); // si el búfer está lleno, pasa al estado inactivo
+            bufer[sup]=val; // inserta un elemento en el búfer
+            sup=(sup+1)% N; // ranura en la que se va a colocar el siguiente elemento
+            cuenta=cuenta+1; // ahora hay un elemento más en el búfer
+            
+            System.out.println(val + " Boleto comprado");
+            
+            if (cuenta==1)
+                notify(); // si el consumidor estaba inactivo, lo despierta [signal]
+        }
+        
+        
+        private void ir_a_estado_inactivo(){
+            try{
+                wait(); 
+            }
+            catch(InterruptedException exc){};
         }
     }
 
