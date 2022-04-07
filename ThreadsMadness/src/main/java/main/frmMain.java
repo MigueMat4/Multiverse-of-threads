@@ -13,6 +13,7 @@ public class frmMain extends javax.swing.JFrame {
     String[][] sala_cine = new String[3][5]; // sala de cine con 5 asientos en cada fila
     int filas_llenas; // contador de filas que se van llenando
     int asientos_ocupados = 0; // contador de posiciones para los asientos de una fila
+    super_monitor monitor = new super_monitor();
 
     /**
      * Creates new form frmMain
@@ -27,32 +28,81 @@ public class frmMain extends javax.swing.JFrame {
     
     public class Cliente extends Thread {
         String nombre;
-        String asiento_obtenido;
         float dinero;
+        double redondeo;
 
         public Cliente(char letra) {
             nombre = "Cliente " + letra;
             this.dinero = (float)(Math.random()* 100 + 50);
+            this.redondeo = Math.round(this.dinero*100.0)/100.0;
         }
         
         @Override
         public void run() {
-            System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.dinero);
+            System.out.println("Proceso " + this.nombre + " iniciado. Tengo Q " + this.redondeo);
             // Antes de escoger asiento debe comprar lo que pueda con el dinero que tenga
             // La entrada cuesta Q 48, los poporopos Q 30 y los dulces Q 5
-            sala_cine[filas_llenas][asientos_ocupados] = this.nombre;
-            String fila = switch (filas_llenas) {
-                case 0 -> "A";
-                case 1 -> "B";
-                default -> "C";
-            };
-            this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
-            asientos_ocupados++;
-            // el cliente debe indicarle al portero que asiento tiene
-            // también debe mostrar cuanto le quedo de dinero para el próximo estreno
-            System.out.println(this.nombre + " finalizado con status: 0");
+            
+            //Condiciones para comprar palomitas
+            if (this.redondeo >= 48) {
+                this.redondeo = this.redondeo - 48;
+                if(this.redondeo >=30){
+                    this.redondeo = this.redondeo - 30;
+                    if(this.redondeo > 5){
+                        this.redondeo = this.redondeo - 5;
+                    }
+                }
+                monitor.insertar(this.nombre);
+                // el cliente debe indicarle al portero que asiento tiene
+                // también debe mostrar cuanto le quedo de dinero para el próximo estreno
+                System.out.println(this.nombre + " finalizado con status: 0" + " Le resta una cantidad de: " + this.redondeo);
+            }
         }
     }
+    
+    class super_monitor { 
+        private int regionCritica[] = new int[5];
+        private int inf = 0, sup = 0; // contadores e índices
+        String asiento_obtenido;
+        // monitor como solución
+        public super_monitor() {
+            regionCritica[0]=0;
+            regionCritica[1]=0;
+            regionCritica[2]=0;
+            regionCritica[3]=0;
+            regionCritica[4]=0;
+
+        }
+        /**
+         * synchronized = Una vez un hilo ha empezado a ejecutar ese método, no
+         * se permitirá que ningún otro hilo empiece a ejecutar ningún otro
+         * método synchronized de ese objeto
+         */
+        public synchronized void insertar(String nombre) {
+            String nom = nombre;
+            if (filas_llenas == 2 && asientos_ocupados == 3) {
+                ir_a_estado_inactivo(); // si el búfer está lleno, pasa al estado inactivo
+            }
+            sala_cine[filas_llenas][asientos_ocupados] = nom;
+                String fila = switch (filas_llenas) {
+                    case 0 ->
+                        "A";
+                    case 1 ->
+                        "B";
+                    default ->
+                        "C";
+                };
+                this.asiento_obtenido = "Fila " + fila + " Asiento " + String.valueOf(asientos_ocupados + 1);
+                asientos_ocupados++;
+        }
+        private void ir_a_estado_inactivo() {
+            try {
+                wait(); // Duerme al proceso en turno
+            } catch (InterruptedException exc) {
+            };
+        }
+    }
+    
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -126,7 +176,7 @@ public class frmMain extends javax.swing.JFrame {
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
         Cliente c;
         char letra = 'A';
-        for (int i=0; i<3; i++){
+        for (int i=0; i<15; i++){
             c = new Cliente(letra);
             c.start();
             letra++;
